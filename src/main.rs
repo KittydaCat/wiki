@@ -13,6 +13,14 @@ enum Markup<'a> {
     DoubleBracket(&'a str),
     DoubleBrace(&'a str),
     Text(&'a str),
+    Span(&'a str),
+}
+
+#[derive(Debug)]
+struct ArticleLink<'a> {
+    og_text: String,
+    article_name: String,
+    display_name: String,
 }
 
 enum ParserState {
