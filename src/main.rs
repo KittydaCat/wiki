@@ -5,6 +5,8 @@
 // - Add correctly displayed links to Double Bracket
 // - Add support for different <> </> types
 
+use std::fs::{self, File};
+
 use serde_json::Value;
 use colored::Colorize;
 
@@ -150,10 +152,13 @@ fn parse(mut text: &str) -> Vec<Markup> {
 
 fn main() {
 
-    let mess = reqwest::blocking::get("https://api.wikimedia.org/core/v1/wikipedia/en/page/Cat_(Unix)").unwrap();
+    // let mess = reqwest::blocking::get("https://api.wikimedia.org/core/v1/wikipedia/en/page/Cat_(Unix)").unwrap();
 
-    let body:Value = mess.json().unwrap();
+    // let body: Value = mess.json().unwrap();
+    let file = fs::read("rawtext.txt").unwrap();
 
+    let body = serde_json::from_slice(&file);
+    
     let raw_page = body.as_object().unwrap().get("source").unwrap().as_str().unwrap();
 
     // println!("{}", raw_page);
@@ -174,6 +179,7 @@ fn main() {
             }
             Markup::DoubleBrace(_) => { print!("!") }
             Markup::Text(txt) => { print!("{}", txt) }
+            Markup::Span(_) => { print!("?") }
         }
     }
 
