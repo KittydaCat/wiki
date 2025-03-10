@@ -15,20 +15,78 @@ enum Markup<'a> {
     DoubleBracket(&'a str),
     DoubleBrace(&'a str),
     Text(&'a str),
-    Span(&'a str),
+}
+
+type Text<'a> = Vec<Span<'a>>;
+
+#[derive(Debug)]
+struct Span<'a> {
+    og_text: &'a str,
+    span_type: SpanType<'a>,
+}
+
+#[derive(Debug)]
+enum SpanType<'a> {
+    Template(Template<'a>),
+    ArticleLink(ArticleLink<'a>),
+}
+
+#[derive(Debug)]
+struct Template<'a> {
+    name: &'a str,
+    options: Vec<&'a str>,
 }
 
 #[derive(Debug)]
 struct ArticleLink<'a> {
-    og_text: String,
-    article_name: String,
-    display_name: String,
+    article_name: &'a str,
 }
 
 enum ParserState {
     Bracket,
     Brace,
+    Angle,
+    Appostrophe(u32),
+    CBracket,
+    CBrace,
+    CAngle,
     None,
+}
+
+fn parse2<'a>(text: &'a str) -> Vec<Span<'a>> {
+
+    let mut chars = text.char_indices();
+
+    let mut parser_state = ParserState::None;
+    
+    let mut spans = Vec::new();
+
+    let mut inprogress: Vec<(SpanType, char)> = Vec::new();
+
+    while let Some((pos, char)) = chars.next() {
+
+        match (char, parser_state) {
+            
+            ('{', ParserState::None) => parser_state = ParserState::Brace,
+
+            ('[', ParserState::None) => parser_state = ParserState::Bracket,
+
+            ('\'', ParserState::None) => parser_state = ParserState::Appostrophe(0),
+
+            ('\'', ParserState::Appostrophe(x)) => parser_state = ParserState::Appostrophe(x + 1),
+
+           
+
+            (_, ParserState::Brace | ParserState::Bracket) => parser_state = ParserState::None,        
+
+            _ => todo!()
+
+        }
+    
+    }
+
+    spans
+
 }
 
 fn parse(mut text: &str) -> Vec<Markup> {
@@ -48,7 +106,7 @@ fn parse(mut text: &str) -> Vec<Markup> {
             ('[', ParserState::None) => {ParserState::Bracket},
             ('[', ParserState::Bracket) => {
 
-                let (before, after) = dbg!(text.split_at(pos-1));
+                let (before, after) = text.split_at(pos-1);
 
                 tokens.push(Markup::Text(before));
 
@@ -80,7 +138,7 @@ fn parse(mut text: &str) -> Vec<Markup> {
 
                 }
 
-                let (inside, remaining) = dbg!(after.split_at(pos+1));
+                let (inside, remaining) = after.split_at(pos+1);
 
                 tokens.push(Markup::DoubleBracket(inside));
 
@@ -94,7 +152,7 @@ fn parse(mut text: &str) -> Vec<Markup> {
             ('{', ParserState::None) => {ParserState::Brace},
             ('{', ParserState::Brace) => {
 
-                let (before, after) = dbg!(text.split_at(pos-1));
+                let (before, after) = text.split_at(pos-1);
 
                 tokens.push(Markup::Text(before));
 
@@ -126,7 +184,7 @@ fn parse(mut text: &str) -> Vec<Markup> {
 
                 }
 
-                let (inside, remaining) = dbg!(after.split_at(pos+1));
+                let (inside, remaining) = after.split_at(pos+1);
 
                 tokens.push(Markup::DoubleBrace(inside));
 
@@ -140,6 +198,7 @@ fn parse(mut text: &str) -> Vec<Markup> {
 
             (_, ParserState::Bracket | ParserState::Brace) => ParserState::None,
             (_, ParserState::None) => ParserState::None,
+            _ => todo!(),
         }
 
     }
@@ -157,7 +216,7 @@ fn main() {
     // let body: Value = mess.json().unwrap();
     let file = fs::read("rawtext.txt").unwrap();
 
-    let body = serde_json::from_slice(&file);
+    let body: Value = serde_json::from_slice(&file).unwrap();
     
     let raw_page = body.as_object().unwrap().get("source").unwrap().as_str().unwrap();
 
@@ -179,7 +238,6 @@ fn main() {
             }
             Markup::DoubleBrace(_) => { print!("!") }
             Markup::Text(txt) => { print!("{}", txt) }
-            Markup::Span(_) => { print!("?") }
         }
     }
 
