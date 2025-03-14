@@ -18,4 +18,136 @@
 | license                = [[coreutils]]: [[GPLv3+]]<br/>ReactOS: [[GPLv2+]]\n
 | website                = \n
 }}\n
-'''<code>cat</code>''' is a standard [[Unix utility]] that reads files sequentially, writing them to [[standard output]]. The name is derived from its function to (con)'''cat'''enate files (from Latin ''catenare'', \"to chain\").<ref>{{cite web |title=In Unix, what do some obscurely named commands stand for? |url=https://kb.iu.edu/d/abnd |archive-url=https://web.archive.org/web/20240716192128/https://kb.iu.edu/d/abnd |archive-date=July 16, 2024 |website=University Information Technology Services |publisher=Indiana University}}</ref><ref>{{cite book\n\t| last1 = Kernighan\n\t| first1 = Brian W.\n\t| last2 = Pike\n\t| first2 = Rob\n\t| date = 1984\n\t| title = The UNIX Programming Environment\n\t| publisher = Addison-Wesley\n\t| page = 15\n}}</ref>\nIt has been ported to a number of operating systems.\n\nThe other primary purpose of <code>cat</code>, aside from concatenation, is file printing {{mdash}} allowing the computer user to view the contents of a file. Printing to files and the terminal are the most common uses of <code>cat</code>.<ref name=PikeKernighan />\n\n=={{Anchor|tac}}History==\n<code>cat</code> was part of the early versions of [[Unix]], e.g., [[Version 1 Unix|Version 1]], and replaced <code>pr</code>, a [[PDP-7]] and [[Multics]] utility for copying a single file to the screen.<ref name=\"reader\">{{cite tech report |first1=M. D. |last1=McIlroy |authorlink1=Doug McIlroy |year=1987 |url=http://www.cs.dartmouth.edu/~doug/reader.pdf |title=A Research Unix reader: annotated excerpts from the Programmer's Manual, 1971–1986 |series=CSTR |number=139 |institution=Bell Labs}}</ref> It was written by [[Ken Thompson]] and [[Dennis Ritchie]].\nThe version of <code>cat</code> bundled in [[GNU]] [[coreutils]] was written by Torbjorn Granlund and [[Richard Stallman]].<ref>{{man|1|cat|die.net}}</ref> The [[ReactOS]] version was written by David Welch, Semyon Novikov, and Hermès Bélusca.<ref>{{Cite web |title=reactos/cat.c at master · reactos/reactos · GitHub |url=https://github.com/reactos/reactos/blob/master/modules/rosapps/applications/cmdutils/cat/cat.c |access-date=August 28, 2021 |website=github.com}}</ref>\n\nOver time, alternative utilities such as <code>tac</code> and <code>bat</code> also became available, bringing different new features.<ref>{{Cite web|url=https://man7.org/linux/man-pages/man1/tac.1.html|title=tac(1) - Linux manual page|website=man7.org}}</ref><ref>{{Cite web|url=https://github.com/sharkdp/bat|title=sharkdp/bat|date=December 2, 2021|via=GitHub}}</ref>\n\n==Usage==\n\nThe <code>cat</code> utility serves a dual purpose: concatenating and printing.\nWith a single argument, it is often used to print a file to the user's [[terminal emulator]] (or historically to a [[computer terminal]] or [[teletype]]). With more than one argument, it concatenates several files. The combined result is by default also printed to the terminal, but often users [[Redirection (computing)|redirect]] the result into yet another file.<ref>{{cite report |title=UNIX programmers manual |url=http://www.bitsavers.org/pdf/bellLabs/unix/UNIX_ProgrammersManual_Nov71.pdf |date= November 3, 1971 |website=bitsavers.org |page=32 |archive-url=https://web.archive.org/web/20060617103249/http://www.bitsavers.org/pdf/bellLabs/unix/UNIX_ProgrammersManual_Nov71.pdf|archive-date=2006-06-17}}</ref> Hence printing a single file to the terminal is a special use-case of this concatenation program. Yet, this is its most common use.<ref name=PikeKernighan>{{cite report |url=http://harmful.cat-v.org/cat-v/unix_prog_design.pdf |title=Program design in the UNIX environment |first1=Rob |last1=Pike |first2=Brian W. |last2=Kernighan |author-link1=Rob Pike |author-link2=Brian Kernighan |page=3 }}</ref>\n\nThe [[Single Unix Specification]] defines the operation of <code>cat</code> to read files in the sequence given in its arguments, writing their contents to the standard output in the same sequence. The specification mandates the support of one option flag, ''u''  for unbuffered output, meaning that each byte is written after it has been read.  Some operating systems, like the ones using GNU [[Coreutils|Core Utilities]], do this by default and ignore the flag.<ref name=coreutilsman>GNU Coreutils. [https://www.gnu.org/software/coreutils/manual/html_node/cat-invocation.html \"GNU Coreutils manual\"], ''[[GNU]]'', Retrieved on 1 Mars 2017.</ref>\n\nIf one of the input filenames is specified as a single hyphen (''-''), then <code>cat</code> reads from standard input at that point in the sequence. If no files are specified, <code>cat</code> reads from standard input only.\n\nThe command-[[syntax]] is:\n cat [options] [file_names]\n\n===Options===\nExample of some <code>cat</code> options:<ref>[[OpenBSD]] manual page and the GNU Core Utiltites version of cat</ref>\n\n* {{kbd|-b}} (GNU: {{kbd|--number-nonblank}}), number non-blank output lines\n* {{kbd|-e}} implies {{kbd|-v}} but also display end-of-line characters as {{samp|$}} (GNU only: {{kbd|-E}} the same, but without implying {{kbd|-v}})\n* {{kbd|-n}} (GNU: {{kbd|--number}}), number all output lines\n* {{kbd|-s}} (GNU: {{kbd|--squeeze-blank}}), squeeze multiple adjacent blank lines\n* {{kbd|-t}} implies {{kbd|-v}}, but also display tabs as {{samp|^I}} (GNU: {{kbd|-T}} the same, but without implying {{kbd|-v}})\n* {{kbd|-u}} use unbuffered I/O for stdout. POSIX does not specify the behavior without this option.\n* {{kbd|-v}} (GNU: {{kbd|--show-nonprinting}}), displays nonprinting characters, except for tabs and the end of line character\n\n==Use cases==\n\n<code>cat</code> can be used to pipe a file to a program that expects plain text or binary data on its input stream. <code>cat</code> does not destroy non-text bytes when concatenating and outputting. As such, its two main use cases are text files and certain format-compatible types of binary files.\n\nConcatenation of text is limited to text files using the same legacy encoding, such as [[ASCII]]. <code>cat</code> does not provide a way to concatenate Unicode text files that have a [[Byte Order Mark]] or files using different text encodings from each other.\n\nFor many structured binary data sets, the resulting combined file may not be valid; for example, if a file has a unique header or footer, the result will spuriously duplicate these. However, for some multimedia [[digital container format]]s, the resulting file is valid, and so <code>cat</code> provides an effective means of appending files. Video streams can be a significant example of files that <code>cat</code> can concatenate without issue, e.g. the [[MPEG program stream]] (MPEG-1 and MPEG-2) and [[DV (video format)|DV]] (Digital Video) formats, which are fundamentally simple streams of packets.\n\n==Examples==\n\n{| class=\"wikitable\"\n! <kbd>Command</kbd> !! Explanation \n|-\n| <kbd>cat file1.txt </kbd> || Display contents of file\n|-\n| <kbd>cat file1.txt file2.txt</kbd> || Concatenate two text files and display the result in the terminal\n|-\n| <kbd>cat file1.txt file2.txt > newcombinedfile.txt</kbd> || Concatenate two text files and write them to a new file\n|-\n| <kbd>cat >newfile.txt</kbd> || Create a file called newfile.txt. Type the desired input and press CTRL+D to finish. The text will be in file newfile.txt.\n|-\n| <kbd>cat -n file1.txt file2.txt > newnumberedfile.txt</kbd> || Some implementations of cat, with option -n, can also number lines\n|-\n| <kbd>cat file1.txt > file2.txt</kbd> || Copy the contents of file1.txt into file2.txt \n|-\n| <kbd>cat file1.txt >> file2.txt</kbd> || Append the contents of file1.txt to file2.txt \n|-\n| <kbd>cat file1.txt file2.txt file3.txt {{pipe}} sort > test4</kbd> || Concatenate the files, sort the complete set of lines, and write the output to a newly created file\n|-\n| <kbd>cat file1.txt file2.txt {{pipe}} less</kbd> || Run the program \"less\" with the concatenation of file1 and file2 as its input\n|-\n| <kbd>cat file1.txt {{pipe}} grep example</kbd> || Highlight instances the word \"example\" in file1.txt\n|-\n| <kbd>command {{pipe}} cat</kbd> || Cancel \"command\" special behavior (e.g. paging) when it writes directly to TTY (cf. UUOC below)\n|-\n|}\n\n==Unix culture==\n===Jargon file definition===\nThe [[Jargon File]] version 4.4.7 lists this as the definition of <code>cat</code>:\n{{Quote|\n# To spew an entire file to the screen or some other output sink without pause (syn. blast).\n# By extension, to dump large amounts of data at an unprepared target or with no intention of browsing it carefully. Usage: considered silly. Rare outside Unix sites. See also <kbd>[[dd (Unix)|dd]]</kbd>, [[Block-transfer instruction|BLT]].\n\nAmong Unix fans, <kbd>cat(1)</kbd> is considered an excellent example of [[user interface|user-interface]] design, because it delivers the file contents without such verbosity as spacing or headers between the files, and because it does not require the files to consist of lines of text, but works with any sort of data.\n\nAmong Unix critics, <kbd>cat(1)</kbd> is considered the canonical example of bad user-interface design, because of its woefully unobvious name. It is far more often used to blast a single file to [[standard output]] than to concatenate two or more files. The name <kbd>cat</kbd> for the former operation is just as unintuitive as, say, [[Lisp programming language|LISP]]'s <kbd>[[CAR and CDR|cdr]]</kbd>.{{Citation needed|reason=Both are matters of Opinion|date=August 2021}}\n}}\n\n===Useless use of cat===\n''Useless use of cat'' (''UUOC'') is common Unix jargon for command line constructs that only provide a function of convenience to the user.<ref name=\":0\">{{cite newsgroup |title=Perl or Sed? |author=Brian Blackmore |date=1994-12-05 |newsgroup=comp.unix.shell |url=https://groups.google.com/g/comp.unix.shell/c/532AcI3-zs4/m/SqJ1RQzXdZ4J |access-date=2024-02-12}}</ref> In computing, the word \"abuse\",<ref>{{Cite web|url=https://www.merriam-webster.com/dictionary/abuse|title=Merriam Webster's Definition of Abuse|access-date=2021-02-25}}</ref> in the second sense of the definition, is used to disparage the excessive or unnecessary use of a language construct; thus, abuse of {{tt|cat}} is sometimes called \"cat abuse\". Example of a common {{tt|cat}} abuse is given in the award:\n\n cat filename | command arg1 arg2 argn\n\nThis can be rewritten using [[redirection (computing)|redirection]] of [[stdin]] instead, in either of the following forms (the first is more traditional):\n\n command arg1 arg2 argn < filename\n\n &lt;filename command arg1 arg2 argn\n\nBeyond other benefits, the input redirection forms allow ''command'' to perform [[random access]] on the file, whereas the {{tt|cat}} examples do not. This is because the redirection form opens the file as the stdin file descriptor which ''command'' can fully access, while the {{tt|cat}} form simply provides the data as a stream of bytes.\n\nAnother common case where {{tt|cat}} is unnecessary is where a command defaults to operating on stdin, but will read from a file, if the filename is given as an argument. This is the case for many common commands; the following examples\n\n cat file | grep pattern\n\n cat file | less\n\ncan instead be written as\n\n grep pattern file\n\n less file\n\nA common interactive use of {{tt|cat}} for a single file is to output the content of a file to standard output. However, if the output is piped or redirected, {{tt|cat}} is unnecessary.\n\nA {{tt|cat}} written with UUOC might still be preferred for readability reasons, as reading a piped stream left-to-right might be easier to conceptualize.<ref>{{Cite web|url=http://www.compciv.org/topics/bash/pipes-and-redirection/|title=Stanford Computational Journalism Lab|last=Nguyen|first=Dan|publisher=stanford.edu|access-date=2017-10-08}}</ref> Also, one wrong use of the redirection symbol {{char|&gt;}} instead of {{char|&lt;}} (often adjacent on keyboards) may permanently delete the content of a file, in other words [[clobbering]], and one way to avoid this is to use {{tt|cat}} with pipes. Compare:\n\n command < in | command2 > out\n\n &lt;in command | command2 > out\n\nwith:\n cat in | command | command2 > out\n\n==See also==\n* [[paste (Unix)|paste]]\n* [[Split (Unix)|split]], a command that splits a file into pieces which cat can then rejoin.\n* [[zcat]]\n* [[Less (Unix)|less]]\n* {{anli|netcat}}\n\n==References==\n{{Reflist}}\n\n==External links==\n{{Wikibooks|Guide to Unix|Commands}}\n* {{man|cu|cat|SUS|concatenate and print files}}\n* [http://harmful.cat-v.org/cat-v/ UNIX Style, or cat -v Considered Harmful] - A paper by Rob Pike on proper Unix command design using cat as an example.\n* [http://man.cat-v.org/unix-1st/1/cat cat(1) original manual page] in the First Edition of [[Unix]].\n* {{man/format|1|cat|https://www.gnu.org/software/coreutils/manual/html_node/cat-invocation.html|concatenate and write files|[[GNU]] [[Coreutils]] reference}}\n* {{man|1|cat|OpenBSD|concatenate and print files}}\n* {{man|1|cat|FreeBSD}}\n* {{man|1|cat|Plan 9}}\n* {{man/format|1|tac|https://www.gnu.org/software/coreutils/manual/html_node/tac-invocation.html|concatenate and write files in reverse|[[GNU]] [[Coreutils]] reference}}\n\n{{Unix commands}}\n{{Core Utilities commands}}\n\n[[Category:Unix text processing utilities]]\n[[Category:Standard Unix programs|Cat]]\n[[Category:Unix SUS2008 utilities]]\n[[Category:IBM i Qshell commands]]
+'''<code>cat</code>''' is a standard [[Unix utility]] that reads files sequentially, writing them to [[standard output]].
+The name is derived from its function to (con)'''cat'''enate files (from Latin ''catenare'', \"to chain\").
+<ref>
+{{cite web
+|title=In Unix, what do some obscurely named commands stand for?
+|url=https://kb.iu.edu/d/abnd
+|archive-url=https://web.archive.org/web/20240716192128/https://kb.iu.edu/d/abnd
+|archive-date=July 16, 2024
+|website=University Information Technology Services
+|publisher=Indiana University}}</ref>
+<ref>
+{{cite book\n\t
+| last1 = Kernighan\n\t
+| first1 = Brian W.\n\t
+| last2 = Pike\n\t| first2 = Rob\n\t
+| date = 1984\n\t
+| title = The UNIX Programming Environment\n\t
+| publisher = Addison-Wesley\n\t
+| page = 15\n}}
+</ref>\n
+It has been ported to a number of operating systems.\n\n
+The other primary purpose of <code>cat</code>, aside from concatenation, is file printing {{mdash}} allowing the
+computer user to view the contents of a file. Printing to files and the terminal are the most common uses of
+<code>cat</code>.<ref name=PikeKernighan />\n\n=={{Anchor|tac}}History==\n<code>cat</code> was part of the early
+versions of [[Unix]], e.g., [[Version 1 Unix|Version 1]], and replaced <code>pr</code>, a [[PDP-7]] and [[Multics]]
+utility for copying a single file to the screen.
+<ref name=\"reader\">
+{{cite tech report
+|first1=M. D.
+|last1=McIlroy
+|authorlink1=Doug McIlroy
+|year=1987
+|url=http://www.cs.dartmouth.edu/~doug/reader.pdf
+|title=A Research Unix reader: annotated excerpts from the Programmer's Manual, 1971–1986
+|series=CSTR
+|number=139
+|institution=Bell Labs}}
+</ref>
+It was written by [[Ken Thompson]] and [[Dennis Ritchie]].\n
+The version of <code>cat</code> bundled in [[GNU]] [[coreutils]] was written by Torbjorn Granlund and [[Richard Stallman]].
+<ref>{{man|1|cat|die.net}}</ref>
+The [[ReactOS]] version was written by David Welch, Semyon Novikov, and Hermès Bélusca.
+<ref>
+{{Cite web
+|title=reactos/cat.c at master · reactos/reactos · GitHub
+|url=https://github.com/reactos/reactos/blob/master/modules/rosapps/applications/cmdutils/cat/cat.c
+|access-date=August 28, 2021
+|website=github.com}}
+</ref>\n\n
+Over time, alternative utilities such as <code>tac</code> and <code>bat</code> also became available, bringing different
+new features.
+<ref>
+{{Cite web
+|url=https://man7.org/linux/man-pages/man1/tac.1.html|title=tac(1) - Linux manual page
+|website=man7.org}}
+</ref>
+<ref
+>{{
+Cite web|
+url=https://github.com/sharkdp/bat|
+title=sharkdp/bat|
+date=December 2, 2021|
+via=GitHub}}
+</ref>\n\n
+==Usage==\n\n
+The <code>cat</code> utility serves a dual purpose: concatenating and printing.\nWith a single argument, it is often used
+to print a file to the user's [[terminal emulator]] (or historically to a [[computer terminal]] or [[teletype]]). With
+more than one argument, it concatenates several files. The combined result is by default also printed to the terminal,
+but often users [[Redirection (computing)|redirect]] the result into yet another file.
+<ref>
+{{cite report
+|title=UNIX programmers manual
+|url=http://www.bitsavers.org/pdf/bellLabs/unix/UNIX_ProgrammersManual_Nov71.pdf
+|date= November 3, 1971
+|website=bitsavers.org
+|page=32
+|archive-url=https://web.archive.org/web/20060617103249/http://www.bitsavers.org/pdf/bellLabs/unix/UNIX_ProgrammersManual_Nov71.pdf
+|archive-date=2006-06-17}}
+</ref>
+Hence printing a single file to the terminal is a special use-case of this concatenation program. Yet, this is its most
+common use.
+<ref name=PikeKernighan>
+{{cite report
+|url=http://harmful.cat-v.org/cat-v/unix_prog_design.pdf
+|title=Program design in the UNIX environment
+|first1=Rob
+|last1=Pike
+|first2=Brian W.
+|last2=Kernighan
+|author-link1=Rob Pike
+|author-link2=Brian Kernighan
+|page=3 }}
+</ref>\n\n
+The [[Single Unix Specification]] defines the operation of <code>cat</code> to read files in the sequence given in its
+arguments, writing their contents to the standard output in the same sequence. The specification mandates the support of
+one option flag, ''u''  for unbuffered output, meaning that each byte is written after it has been read.  Some operating
+systems, like the ones using GNU [[Coreutils|Core Utilities]], do this by default and ignore the flag.
+<ref name=coreutilsman>GNU Coreutils. [https://www.gnu.org/software/coreutils/manual/html_node/cat-invocation.html \"GNU Coreutils manual\"],
+''[[GNU]]'', Retrieved on 1 Mars 2017.</ref>\n\n
+If one of the input filenames is specified as a single hyphen (''-''), then <code>cat</code> reads from standard input
+at that point in the sequence. If no files are specified, <code>cat</code> reads from standard input only.\n\n
+The command-[[syntax]] is:\n
+ cat [options] [file_names]\n\n
+ ===Options===\n
+ Example of some <code>cat</code> options:
+<ref>[[OpenBSD]] manual page and the GNU Core Utiltites version of cat</ref>\n\n*
+{{kbd|-b}} (GNU: {{kbd|--number-nonblank}}), number non-blank output lines\n* {{kbd|-e}} implies {{kbd|-v}} but also display end-of-line characters as {{samp|$}} (GNU only: {{kbd|-E}} the same, but without implying {{kbd|-v}})\n* {{kbd|-n}} (GNU: {{kbd|--number}}), number all output lines\n* {{kbd|-s}} (GNU: {{kbd|--squeeze-blank}}), squeeze multiple adjacent blank lines\n* {{kbd|-t}} implies {{kbd|-v}}, but also display tabs as {{samp|^I}} (GNU: {{kbd|-T}} the same, but without implying {{kbd|-v}})\n* {{kbd|-u}} use unbuffered I/O for stdout. POSIX does not specify the behavior without this option.\n* {{kbd|-v}} (GNU: {{kbd|--show-nonprinting}}), displays nonprinting characters, except for tabs and the end of line character\n\n==Use cases==\n\n<code>cat</code> can be used to pipe a file to a program that expects plain text or binary data on its input stream. <code>cat</code> does not destroy non-text bytes when concatenating and outputting. As such, its two main use cases are text files and certain format-compatible types of binary files.\n\nConcatenation of text is limited to text files using the same legacy encoding, such as [[ASCII]]. <code>cat</code> does not provide a way to concatenate Unicode text files that have a [[Byte Order Mark]] or files using different text encodings from each other.\n\nFor many structured binary data sets, the resulting combined file may not be valid; for example, if a file has a unique header or footer, the result will spuriously duplicate these. However, for some multimedia [[digital container format]]s, the resulting file is valid, and so <code>cat</code> provides an effective means of appending files. Video streams can be a significant example of files that <code>cat</code> can concatenate without issue, e.g. the [[MPEG program stream]] (MPEG-1 and MPEG-2) and [[DV (video format)|DV]] (Digital Video) formats, which are fundamentally simple streams of packets.\n\n==Examples==\n\n
+{|
+class=\"wikitable\"\n
+! <kbd>Command</kbd>
+!! Explanation \n
+|-\n
+|<kbd>cat file1.txt </kbd>
+|| Display contents of file\n
+|-\n
+| <kbd>cat file1.txt file2.txt</kbd>
+|| Concatenate two text files and display the result in the terminal\n
+|-\n
+| <kbd>cat file1.txt file2.txt > newcombinedfile.txt</kbd>
+|| Concatenate two text files and write them to a new file\n
+|-\n
+| <kbd>cat >newfile.txt</kbd>
+|| Create a file called newfile.txt. Type the desired input and press CTRL+D to finish. The text will be in file newfile.txt.\n
+|-\n| <kbd>cat -n file1.txt file2.txt > newnumberedfile.txt</kbd>
+|| Some implementations of cat, with option -n, can also number lines\n
+|-\n| <kbd>cat file1.txt > file2.txt</kbd>
+|| Copy the contents of file1.txt into file2.txt \n
+|-\n| <kbd>cat file1.txt >> file2.txt</kbd>
+|| Append the contents of file1.txt to file2.txt \n
+|-\n| <kbd>cat file1.txt file2.txt file3.txt {{pipe}} sort > test4</kbd>
+|| Concatenate the files, sort the complete set of lines, and write the output to a newly created file\n
+|-\n| <kbd>cat file1.txt file2.txt {{pipe}} less</kbd>
+|| Run the program \"less\" with the concatenation of file1 and file2 as its input\n|-\n| <kbd>cat file1.txt {{pipe}} grep example</kbd> || Highlight instances the word \"example\" in file1.txt\n|-\n| <kbd>command {{pipe}} cat</kbd> || Cancel \"command\" special behavior (e.g. paging) when it writes directly to TTY (cf. UUOC below)\n|-\n|}\n\n==Unix culture==\n===Jargon file definition===\nThe [[Jargon File]] version 4.4.7 lists this as the definition of <code>cat</code>:\n{{Quote|\n# To spew an entire file to the screen or some other output sink without pause (syn. blast).\n# By extension, to dump large amounts of data at an unprepared target or with no intention of browsing it carefully. Usage: considered silly. Rare outside Unix sites. See also <kbd>[[dd (Unix)|dd]]</kbd>, [[Block-transfer instruction|BLT]].\n\nAmong Unix fans, <kbd>cat(1)</kbd> is considered an excellent example of [[user interface|user-interface]] design, because it delivers the file contents without such verbosity as spacing or headers between the files, and because it does not require the files to consist of lines of text, but works with any sort of data.\n\nAmong Unix critics, <kbd>cat(1)</kbd> is considered the canonical example of bad user-interface design, because of its woefully unobvious name. It is far more often used to blast a single file to [[standard output]] than to concatenate two or more files. The name <kbd>cat</kbd> for the former operation is just as unintuitive as, say, [[Lisp programming language|LISP]]'s <kbd>[[CAR and CDR|cdr]]</kbd>.{{Citation needed|reason=Both are matters of Opinion|date=August 2021}}\n}}\n\n===Useless use of cat===\n''Useless use of cat'' (''UUOC'') is common Unix jargon for command line constructs that only provide a function of convenience to the user.<ref name=\":0\">{{cite newsgroup |title=Perl or Sed? |author=Brian Blackmore |date=1994-12-05 |newsgroup=comp.unix.shell |url=https://groups.google.com/g/comp.unix.shell/c/532AcI3-zs4/m/SqJ1RQzXdZ4J |access-date=2024-02-12}}</ref> In computing, the word \"abuse\",<ref>{{Cite web|url=https://www.merriam-webster.com/dictionary/abuse|title=Merriam Webster's Definition of Abuse|access-date=2021-02-25}}</ref> in the second sense of the definition, is used to disparage the excessive or unnecessary use of a language construct; thus, abuse of {{tt|cat}} is sometimes called \"cat abuse\". Example of a common {{tt|cat}} abuse is given in the award:\n\n cat filename | command arg1 arg2 argn\n\nThis can be rewritten using [[redirection (computing)|redirection]] of [[stdin]] instead, in either of the following forms (the first is more traditional):\n\n command arg1 arg2 argn < filename\n\n &lt;filename command arg1 arg2 argn\n\nBeyond other benefits, the input redirection forms allow ''command'' to perform [[random access]] on the file, whereas the {{tt|cat}} examples do not. This is because the redirection form opens the file as the stdin file descriptor which ''command'' can fully access, while the {{tt|cat}} form simply provides the data as a stream of bytes.\n\nAnother common case where {{tt|cat}} is unnecessary is where a command defaults to operating on stdin, but will read from a file, if the filename is given as an argument. This is the case for many common commands; the following examples\n\n cat file | grep pattern\n\n cat file | less\n\ncan instead be written as\n\n grep pattern file\n\n less file\n\nA common interactive use of {{tt|cat}} for a single file is to output the content of a file to standard output. However, if the output is piped or redirected, {{tt|cat}} is unnecessary.\n\nA {{tt|cat}} written with UUOC might still be preferred for readability reasons, as reading a piped stream left-to-right might be easier to conceptualize.<ref>{{Cite web|url=http://www.compciv.org/topics/bash/pipes-and-redirection/|title=Stanford Computational Journalism Lab|last=Nguyen|first=Dan|publisher=stanford.edu|access-date=2017-10-08}}</ref> Also, one wrong use of the redirection symbol {{char|&gt;}} instead of {{char|&lt;}} (often adjacent on keyboards) may permanently delete the content of a file, in other words [[clobbering]], and one way to avoid this is to use {{tt|cat}} with pipes. Compare:\n\n command < in | command2 > out\n\n &lt;in command | command2 > out\n\nwith:\n cat in | command | command2 > out\n\n==See also==\n* [[paste (Unix)|paste]]\n* [[Split (Unix)|split]], a command that splits a file into pieces which cat can then rejoin.\n* [[zcat]]\n* [[Less (Unix)|less]]\n* {{anli|netcat}}\n\n==References==\n{{Reflist}}\n\n==External links==\n{{Wikibooks|Guide to Unix|Commands}}\n* {{man|cu|cat|SUS|concatenate and print files}}\n* [http://harmful.cat-v.org/cat-v/ UNIX Style, or cat -v Considered Harmful] - A paper by Rob Pike on proper Unix command design using cat as an example.\n* [http://man.cat-v.org/unix-1st/1/cat cat(1) original manual page] in the First Edition of [[Unix]].\n* {{man/format|1|cat|https://www.gnu.org/software/coreutils/manual/html_node/cat-invocation.html|concatenate and write files|[[GNU]] [[Coreutils]] reference}}\n* {{man|1|cat|OpenBSD|concatenate and print files}}\n* {{man|1|cat|FreeBSD}}\n* {{man|1|cat|Plan 9}}\n* {{man/format|1|tac|https://www.gnu.org/software/coreutils/manual/html_node/tac-invocation.html|concatenate and write files in reverse|[[GNU]] [[Coreutils]] reference}}\n\n{{Unix commands}}\n{{Core Utilities commands}}\n\n[[Category:Unix text processing utilities]]\n[[Category:Standard Unix programs|Cat]]\n[[Category:Unix SUS2008 utilities]]\n[[Category:IBM i Qshell commands]]
