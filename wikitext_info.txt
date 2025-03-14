@@ -1,0 +1,13 @@
+Templates
+
+Article Links
+ - I think I got them figured out
+External Links
+
+Spans
+ -
+Built in markup
+ -Add asterisk for list
+ -Space in front does things
+ - '-' in front
+

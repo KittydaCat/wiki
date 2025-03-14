@@ -3,12 +3,19 @@
 // Space infront of lines make it weird
 // Add wiki table support :(
 
-use std::fmt::{Display, Formatter};
+use std::cell::RefCell;
+use std::cmp::PartialEq;
+use std::collections::HashSet;
+use std::fmt::{Display, Formatter, Write};
 use std::fs::{self, File};
 use std::str::{Chars};
 use serde_json::Value;
 use either::Either;
 use regex::Regex;
+use colored;
+use colored::Colorize;
+
+thread_local!(static TAGS: RefCell<HashSet<String>> = RefCell::new(HashSet::<String>::new()));
 
 #[derive(Debug,Clone)]
 enum Token {
@@ -18,13 +25,33 @@ enum Token {
     Span(Span),
 }
 
+impl Token {
+    fn write(tokens: &[Token], f: &mut Formatter<'_>) -> std::fmt::Result {
+
+        for x in tokens {
+
+            write!(f, "{}", x)?;
+
+        }
+        Ok(())
+    }
+}
+
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Token::Text(x) => {todo!()}
-            Token::Link(x) => {todo!()}
-            Token::Template(x) => {todo!()}
-            Token::Span(x) => {todo!()}
+            Token::Text(x) => {
+                f.write_str(x)
+            }
+            Token::Link(x) => {
+                write!(f, "{}", x.display_name.blue())
+            }
+            Token::Template(x) => {write!(f, "{{{{ {} }}}}", &x.template_name)}
+            Token::Span(x) => {
+                write!(f, "<{:?}>", &x.span_type)?;
+                Token::write(&x.inner_text, f)?;
+                write!(f, "<{:?}>", &x.span_type)
+            }
         }
     }
 }
@@ -43,9 +70,19 @@ struct Template {
 
 #[derive(Clone, Debug)]
 struct Span {
-    span_type: String,
+    span_type: SpanType,
     options: Vec<(String, String)>,
     inner_text: Vec<Token>
+}
+
+#[derive(Clone, Debug)]
+enum SpanType {
+    Code,
+    KBD,
+    Ref,
+    Br,
+    Other(String),
+    Comment,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -54,10 +91,22 @@ enum ParserState {
     ClosedBracket,
     OpenBrace,
     ClosedBrace,
+    Apostrophe(u32),
     None,
 }
 
-fn parse(chars: &mut Chars) -> (Vec<Token>, Option<char>) {
+#[derive(Debug, Clone, PartialEq)]
+enum ParserGoal {
+    DoubleBracket,
+    // DoubleBrace,
+    // PipeBrace,
+    Span,
+    None,
+    // Pipe,
+    EndTemplate,
+}
+
+fn parse(chars: &mut Chars, goal: ParserGoal) -> (Vec<Token>, Option<char>) {
 
     let mut state = ParserState::None;
 
@@ -67,53 +116,39 @@ fn parse(chars: &mut Chars) -> (Vec<Token>, Option<char>) {
 
     while let Some(grabbed_char) = chars.next() {
 
-        state = match (grabbed_char, state) {
+        state = match (grabbed_char, state, &goal) {
 
-            ('{', ParserState::None) => ParserState::OpenBrace,
-            ('[', ParserState::None) => ParserState::OpenBracket,
-            ('}', ParserState::None) => ParserState::ClosedBrace,
-            (']', ParserState::None) => ParserState::ClosedBracket,
+            ('{', ParserState::None, _) => ParserState::OpenBrace,
+            ('[', ParserState::None, _) => ParserState::OpenBracket,
+            ('}', ParserState::None, ParserGoal::EndTemplate) => ParserState::ClosedBrace,
+            (']', ParserState::None, ParserGoal::DoubleBracket) => ParserState::ClosedBracket,
+            // ('\'', ParserState::None) => ParserState::Apostrophe(1),
+            // ('\'', ParserState::Apostrophe(x)) => ParserState::Apostrophe(x+1),
+            (_, ParserState::Apostrophe(_), _) => panic!(),
 
-            ('[', ParserState::OpenBracket) => {
-
-                // [[Plan 9 from Bell Labs|Plan 9]]
-
+            ('[', ParserState::OpenBracket, _) => {
                 tokens.push(Token::Text(tempstr));
-
                 tempstr = String::new();
 
                 tokens.push(Token::Link(parse_link(chars)));
-
                 ParserState::None
             },
 
-            ('{', ParserState::OpenBrace) => {
-
-                // start parsing the template
-
+            ('{', ParserState::OpenBrace, _) => {
                 tokens.push(Token::Text(tempstr));
-
                 tempstr = String::new();
 
                 tokens.push(Token::Template(parse_template(chars)));
-
                 ParserState::None
             },
 
-            ('|', ParserState::OpenBrace) => {
-
-                // wikitable
-
+            ('|', ParserState::OpenBrace, _) => {
                 tokens.push(Token::Text(tempstr));
-
                 tempstr = String::new();
 
                 let mut char2 = chars.next();
-
                 loop {
-
                     let char1 = chars.next();
-
                     match (char2, char1) {
                         (None, None) => panic!(),
                         (Some(_), None) => panic!(),
@@ -124,44 +159,54 @@ fn parse(chars: &mut Chars) -> (Vec<Token>, Option<char>) {
                             panic!()
                         }
                     }
-
                     char2 = char1;
-
                 }
-
                 ParserState::None
             },
 
-            (']', ParserState::ClosedBracket) => {
+            (']', ParserState::ClosedBracket, x) => {
+
+                assert_eq!(x, &ParserGoal::DoubleBracket);
+
                 tokens.push(Token::Text(tempstr));
 
                 return (tokens, Some(']'));
+
             }
-            ('}', ParserState::ClosedBrace) => {
+            ('}', ParserState::ClosedBrace, x) => {
+
+                assert_eq!(x, &ParserGoal::EndTemplate);
+
                 tokens.push(Token::Text(tempstr));
 
                 return (tokens, Some('}'));
             }
 
-            ('<', ParserState::None) => {
-
-                tokens.push(Token::Text(tempstr));
-
-                tempstr = String::new();
-
+            ('<', ParserState::None, goal) => {
                 let x = chars.next().unwrap();
 
                 // if its a closing tag its not our problem
                 if x == '/' {
+                    tokens.push(Token::Text(tempstr));
+                    tempstr = String::new();
+
+                    assert_eq!(goal, &ParserGoal::Span);
+
                     return (tokens, Some('/'));
+                } else if x.is_ascii_alphabetic() {
+                    tokens.push(Token::Text(tempstr));
+                    tempstr = String::new();
+
+                    tokens.push(Token::Span(parse_span(chars, x)));
+                } else {
+                    assert_eq!(x, ' ');
+                    tempstr.push('<');
+                    tempstr.push(x);
                 }
-
-                tokens.push(Token::Span(parse_span(chars, x)));
-
                 ParserState::None
             },
 
-            ('|', ref x) => {
+            ('|', ref x, ParserGoal::DoubleBracket | ParserGoal::EndTemplate) => {
 
                 assert_eq!(*x, ParserState::None);
 
@@ -170,36 +215,29 @@ fn parse(chars: &mut Chars) -> (Vec<Token>, Option<char>) {
                 return (tokens, Some('|'));
             },
 
-            ('>', _) => panic!(),
+            (x, ParserState::None, _) => {tempstr.push(x);ParserState::None}
 
-            (x, ParserState::None) => {tempstr.push(x);ParserState::None}
+            (x, ParserState::OpenBracket, _) => {
 
-            // i think this might be used for external links
-            // ctr f "defines the operation of" on Cat and look in the ref
-            // but idk
 
-            // !!! /\ that was wrong
-            (x, ParserState::OpenBracket) => {
+
                 tempstr.push('[');
                 tempstr.push(x);
-
-                // dbg!(x);
-                // will fail if [] is not only for https stuff
-
 
                 ParserState::None
             },
             // same deal-io as above
-            (x, ParserState::ClosedBracket) => {
+            (x, ParserState::ClosedBracket, goal) => {
+
+                assert_eq!(goal, &ParserGoal::DoubleBracket);
+
                 tempstr.push(']');
                 tempstr.push(x);
 
                 ParserState::None
             }
 
-            x @ ((_, ParserState::OpenBrace) |
-            (_, ParserState::ClosedBracket) |
-            (_, ParserState::ClosedBrace)) => {
+            x @ ((_, ParserState::OpenBrace, _) | (_, ParserState::ClosedBrace, _)) => {
                 dbg!(x);
                 todo!()
             },
@@ -213,10 +251,10 @@ fn parse(chars: &mut Chars) -> (Vec<Token>, Option<char>) {
 
 fn parse_link(chars: &mut Chars) -> Link {
 
-    let (mut return_tokens, Some(return_char)) = parse(chars) else {panic!("wikitext in article name")};
+    // wikitext is allowed in display links
+    let (mut return_tokens, Some(return_char)) = parse(chars, ParserGoal::DoubleBracket) else {panic!("wikitext in article name")};
 
     assert_eq!(return_tokens.len(), 1);
-
 
     let Token::Text(article_name) = return_tokens.remove(0) else {panic!("wikitext in article name")};
 
@@ -226,7 +264,7 @@ fn parse_link(chars: &mut Chars) -> Link {
 
     } else if return_char == '|' {
 
-        let (mut display_tokens, Some(']')) = parse(chars) else {panic!("wikitext in article name")};
+        let (mut display_tokens, Some(']')) = parse(chars, ParserGoal::DoubleBracket) else {panic!("wikitext in article name")};
 
         assert_eq!(display_tokens.len(), 1);
 
@@ -241,7 +279,7 @@ fn parse_link(chars: &mut Chars) -> Link {
 
 fn parse_template(chars: &mut Chars) -> Template {
 
-    let (mut first_tokens, Some(mut char)) = parse(chars) else {panic!()};
+    let (mut first_tokens, Some(mut char)) = parse(chars, ParserGoal::EndTemplate) else {panic!()};
 
     assert_eq!(first_tokens.len(), 1);
 
@@ -255,7 +293,7 @@ fn parse_template(chars: &mut Chars) -> Template {
     while char == '|' {
 
         // grab the parsed tokens
-        let (mut options_tokens, Some(new_char)) = parse(chars) else { panic!()};
+        let (mut options_tokens, Some(new_char)) = parse(chars, ParserGoal::EndTemplate) else { panic!()};
 
         // assign the new ending char
         char = new_char;
@@ -285,14 +323,14 @@ fn parse_template(chars: &mut Chars) -> Template {
 
             // or it just happens to be text at the start
             } else {
-                dbg!("positional arg,", &options_tokens, option_num);
+                dbg!("positional arg", &options_tokens, option_num, &template_name);
 
                 options.push((Either::Left(option_num), options_tokens));
 
             }
 
         } else {
-            dbg!("positional arg,", &options_tokens, option_num);
+            dbg!("positional arg", &options_tokens, option_num, &template_name);
 
             options.push((Either::Left(option_num), options_tokens));
         }
@@ -310,11 +348,44 @@ fn parse_template(chars: &mut Chars) -> Template {
 fn parse_span(chars: &mut Chars, init_char: char) -> Span {
 
     // start grabbing the spans type
-    let mut span_type = String::new();
-    span_type.push(dbg!(init_char));
+    let mut span_name = String::new();
+    span_name.push(dbg!(init_char));
     let mut options = Vec::new();
 
     let self_closing;
+
+    // we got a comment
+    if init_char == '!' {
+
+        let mut inner_str = String::new();
+
+        assert_eq!(chars.next().unwrap(), '-');
+        assert_eq!(chars.next().unwrap(), '-');
+
+        let mut char1 = chars.next().unwrap();
+        let mut char2 = chars.next().unwrap();
+        let mut char3 = chars.next().unwrap();
+
+        dbg!(char1, char2, char3);
+
+        while !(char1 == '-' && char2 == '-' && char3 == '>') {
+
+            dbg!(char1);
+
+            inner_str.push(char1);
+            char1 = char2;
+            char2 = char3;
+            char3 = chars.next().unwrap();
+        }
+
+        dbg!(char1, char2, char3, "return");
+
+        return Span {
+            span_type: SpanType::Comment,
+            options,
+            inner_text: vec![Token::Text(inner_str)],
+        };
+    }
 
     'span: loop {
 
@@ -360,14 +431,14 @@ fn parse_span(chars: &mut Chars, init_char: char) -> Span {
                 while x.is_whitespace() {x = chars.next().unwrap();}
 
 
-                assert_eq!(x, '=', "{} {} {:?}", span_type, option_name, &options);
+                assert_eq!(x, '=', "{} {} {:?}", span_name, option_name, &options);
 
                 // clear the equal sign
                 x = chars.next().unwrap();
 
                 while x.is_whitespace() {x = chars.next().unwrap();}
 
-                if (x == '"') {
+                if x == '"' {
 
                     x = chars.next().unwrap();
 
@@ -378,7 +449,7 @@ fn parse_span(chars: &mut Chars, init_char: char) -> Span {
 
                 } else {
 
-                    assert_eq!(span_type, "ref");
+                    assert_eq!(span_name, "ref");
 
                     // consume till the un enclosed option is taken fully or we reach the end of tag
                     while !x.is_whitespace() {
@@ -414,8 +485,8 @@ fn parse_span(chars: &mut Chars, init_char: char) -> Span {
 
         } else {
 
-            assert!(x.is_alphabetic());
-            span_type.push(x);
+            assert!(x.is_alphabetic(), "{}", &span_name);
+            span_name.push(x);
 
         }
 
@@ -427,7 +498,7 @@ fn parse_span(chars: &mut Chars, init_char: char) -> Span {
 
     } else {
 
-        let (inner, Some('/')) = dbg!(parse(chars)) else {panic!()};
+        let (inner, Some('/')) = dbg!(parse(chars, ParserGoal::Span)) else {panic!()};
 
         let mut closing_span = String::new();
 
@@ -438,9 +509,20 @@ fn parse_span(chars: &mut Chars, init_char: char) -> Span {
             x = chars.next().unwrap()
         }
 
-        assert_eq!(closing_span, span_type);
+        assert_eq!(closing_span, span_name);
 
         inner
+    };
+
+    let span_type = match span_name.as_str() {
+        "ref" => SpanType::Ref,
+        "code" => SpanType::Code,
+        "kbd" => SpanType::KBD,
+        "br" => SpanType::Br,
+        _ => {
+            TAGS.with_borrow_mut(|x| x.insert(span_name.clone()));
+            SpanType::Other(span_name)
+        }
     };
 
     Span {
@@ -453,15 +535,19 @@ fn parse_span(chars: &mut Chars, init_char: char) -> Span {
 
 fn main() {
 
-    // let mess = reqwest::blocking::get("https://api.wikimedia.org/core/v1/wikipedia/en/page/Cat_(Unix)").unwrap();
-    //
-    // let body: Value = mess.json().unwrap();
-    //
-    // let raw_page = body.as_object().unwrap().get("source").unwrap().as_str().unwrap();
-    //
-    // println!("{:?}", parse(&mut raw_page.chars()))
+    // let mess = reqwest::blocking::get("https://api.wikimedia.org/core/v1/wikipedia/en/page/Lisp_(programming_language)").unwrap();
+    let mess = reqwest::blocking::get("https://api.wikimedia.org/core/v1/wikipedia/en/page/Cat_(Unix)").unwrap();
 
+    let body: Value = mess.json().unwrap();
 
+    let raw_page = body.as_object().unwrap().get("source").unwrap().as_str().unwrap();
+
+    for x in parse(&mut raw_page.chars(), ParserGoal::None).0 {
+
+        print!("{}", x);
+
+    }
+    
     // dbg!(parse(&mut "Hello World [[hi]] [[Hello Wolrd lame| Hi World]]".chars()));
 
     // dbg!(parse(&mut "{{For|other uses of cat|Cat (disambiguation)|Cat|}}".chars()));
@@ -486,4 +572,5 @@ fn main() {
 // }}".chars()));
 
     // dbg!(parse(&mut "{{For|other uses of cat|Cat (disambiguation)|Cat|}}".chars()));
+    dbg!(TAGS.with_borrow(|x| x.iter().map(String::clone).collect::<Vec<_>>()));
 }
