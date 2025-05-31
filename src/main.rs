@@ -193,7 +193,7 @@ fn parse(chars: &mut Chars, goal: ParserGoal) -> (Vec<Token>, Option<char>) {
                     assert_eq!(goal, &ParserGoal::Span);
 
                     return (tokens, Some('/'));
-                } else if x.is_ascii_alphabetic() {
+                } else if x.is_ascii_alphabetic() || x == '!' {
                     tokens.push(Token::Text(tempstr));
                     tempstr = String::new();
 
@@ -264,7 +264,7 @@ fn parse_link(chars: &mut Chars) -> Link {
 
     } else if return_char == '|' {
 
-        let (mut display_tokens, Some(']')) = parse(chars, ParserGoal::DoubleBracket) else {panic!("wikitext in article name")};
+        let (mut display_tokens, Some(']')) = dbg!(parse(chars, ParserGoal::DoubleBracket)) else {panic!("wikitext in article name")};
 
         assert_eq!(display_tokens.len(), 1);
 
@@ -535,14 +535,16 @@ fn parse_span(chars: &mut Chars, init_char: char) -> Span {
 
 fn main() {
 
-    // let mess = reqwest::blocking::get("https://api.wikimedia.org/core/v1/wikipedia/en/page/Lisp_(programming_language)").unwrap();
-    let mess = reqwest::blocking::get("https://api.wikimedia.org/core/v1/wikipedia/en/page/Cat_(Unix)").unwrap();
+    let mess = reqwest::blocking::get("https://api.wikimedia.org/core/v1/wikipedia/en/page/Lisp_(programming_language)").unwrap();
+    // let mess = reqwest::blocking::get("https://api.wikimedia.org/core/v1/wikipedia/en/page/Cat_(Unix)").unwrap();
 
     let body: Value = mess.json().unwrap();
 
     let raw_page = body.as_object().unwrap().get("source").unwrap().as_str().unwrap();
 
-    for x in parse(&mut raw_page.chars(), ParserGoal::None).0 {
+    let (tokens, None) = parse(&mut raw_page.chars(), ParserGoal::None) else {todo!()};
+
+    for x in tokens {
 
         print!("{}", x);
 
